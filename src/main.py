@@ -1,36 +1,20 @@
-from datetime import date
-from modelos.lector import Lector
-from modelos.periodista import Periodista
+from conexion import ConexionBD
+from repositorios.noticia_repositorio import NoticiaRepositorio
 
 def main():
-    print("=== Iniciando Sistema de Gestión de Noticias (Modo Molde) ===")
-
-    # 1. Creando un objeto usando el molde Lector
-    lector_prueba = Lector(
-        id_usuario=1,
-        nombre="Carlos Martínez",
-        correo="carlos@email.com",
-        contrasena="password123",
-        intereses="Tecnología, Deportes",
-        fecha_registro=date.today()
-    )
-
-    # 2. Creando un objeto usando el molde Periodista
-    periodista_prueba = Periodista(
-        id_usuario=2,
-        nombre="Laura Gómez",
-        correo="laura@prensa.com",
-        contrasena="segura456",
-        especialidad="Política",
-        fecha_ingreso=date(2022, 5, 10)
-    )
-
-    # 3. Comprobación de que los moldes funcionan en memoria
-    print(f"\n[ Éxito ] Lector creado en memoria: {lector_prueba._nombre}")
-    print(f"-> Intereses: {lector_prueba._intereses}")
+    print("=== Gestor Editorial: Eliminando Noticia ===")
     
-    print(f"\n[ Éxito ] Periodista creado en memoria: {periodista_prueba._nombre}")
-    print(f"-> Especialidad: {periodista_prueba._especialidad}")
+    repo_noticia = NoticiaRepositorio()
+    
+    # ID de la noticia que queremos borrar (usaremos la 1)
+    id_a_borrar = 1 
+    
+    print(f"\n[ Intentando eliminar la noticia {id_a_borrar}... ]")
+    repo_noticia.eliminar(id_a_borrar)
+    
+    # Cerramos la conexión
+    bd = ConexionBD()
+    bd.cerrar_conexion()
 
 if __name__ == "__main__":
     main()
