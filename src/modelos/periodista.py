@@ -1,5 +1,5 @@
 from peewee import Model, AutoField, CharField, DateTimeField, DateField, IntegerField, DecimalField, BooleanField, ForeignKeyField
-from conexion import db
+from src.conexion import db
 from src.modelos.usuario import ModelBase, Usuario
 class Periodista(ModelBase):
     # Hereda la PK de usuario tal como lo hiciste en MySQL
