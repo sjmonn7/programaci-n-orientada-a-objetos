@@ -1,31 +1,17 @@
-from datetime import date
-from .categoria import Categoria
-from .etiqueta import Etiqueta
+from peewee import AutoField, CharField, DateField, ForeignKeyField, TextField
+# Importamos ModelBase desde donde lo definiste (según tus fotos anteriores, estaba en usuario.py)
+from src.modelos.usuario import ModelBase
+from src.modelos.periodista import Periodista
 
-class Noticia:
-    def __init__(self, id_noticia: int, titulo: str, contenido: str, fecha: date, estado: str, id_periodista: int):
-        # Atributos principales[cite: 1]
-        self._id_noticia = id_noticia
-        self._titulo = titulo
-        self._contenido = contenido
-        self._fecha = fecha
-        self._estado = estado
-        self._id_periodista = id_periodista
-        
-        # Listas para manejar la multiplicidad 0..* de las asociaciones[cite: 1]
-        self._categorias = []
-        self._etiquetas = []
-        self._recursos = []
+class Noticia(ModelBase):
+    id_noticia = AutoField()  # Peewee lo hará Primary Key automáticamente
+    titulo = CharField(max_length=255)
+    contenido = TextField()
+    fecha = DateField()
+    estado = CharField(max_length=50)
+    
+    # La llave foránea hacia el periodista se define así:
+    periodista = ForeignKeyField(Periodista, backref='noticias', column_name='id_periodista')
 
-    # Métodos de gestión de la Noticia[cite: 1]
-    def asociar_categoria(self, categoria: Categoria) -> bool:
-        pass
-
-    def asociar_etiqueta(self, etiqueta: Etiqueta) -> bool:
-        pass
-
-    def agregar_recurso(self, recurso) -> bool:
-        pass
-
-    def publicar(self) -> bool:
-        pass
+    class Meta:
+        table_name = 'noticias'

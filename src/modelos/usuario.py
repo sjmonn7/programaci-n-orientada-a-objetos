@@ -1,5 +1,5 @@
 from peewee import Model, AutoField, CharField, DateTimeField, DateField, IntegerField, DecimalField, BooleanField, ForeignKeyField
-from conexion import db
+from src.conexion import db
 
 class ModelBase(Model):
     class Meta:

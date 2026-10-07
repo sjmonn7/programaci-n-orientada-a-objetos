@@ -1,10 +1,10 @@
 from peewee import MySQLDatabase
 
-# Configuración de la base de datos para tu equipo de casa
+# Configuración adaptada para el WampServer de la sede
 db = MySQLDatabase(
-    'noticiero',          # Nombre de tu base de datos
-    user='root',          # Tu usuario de MySQL (por defecto suele ser root)
-    password='tu_password', # La contraseña que le hayas puesto a tu MySQL en casa
+    'noticiero',          # El nombre exacto de tu base de datos
+    user='root',          # Usuario por defecto en WampServer
+    password='',          # ¡Ojo aquí! En WampServer la contraseña suele ir VACÍA
     host='localhost',
     port=3306
 )

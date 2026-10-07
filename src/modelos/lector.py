@@ -1,5 +1,5 @@
 from peewee import Model, CharField, IntegerField, BooleanField, ForeignKeyField
-from conexion import db
+from src.conexion import db
 from src.modelos.usuario import ModelBase, Usuario  # O la ruta relativa correcta según tu estructura
 class Lector(ModelBase):
     # Hereda la PK de usuario e incluye el campo intereses que agregaste al final
