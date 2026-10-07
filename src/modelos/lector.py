@@ -1,24 +1,14 @@
-from datetime import date
-from .usuario import Usuario
+from peewee import Model, CharField, IntegerField, BooleanField, ForeignKeyField
+from conexion import db
+from src.modelos.usuario import ModelBase, Usuario  # O la ruta relativa correcta según tu estructura
+class Lector(ModelBase):
+    # Hereda la PK de usuario e incluye el campo intereses que agregaste al final
+    usuario = ForeignKeyField(Usuario, primary_key=True, column_name='id_usuario', backref='lector')
+    intereses = CharField(max_length=255, null=True)
+    reputacion_comentador = IntegerField(default=0)
+    notificaciones_activas = BooleanField(default=True)
+    idioma_preferido = CharField(max_length=10, default='es')
+    limite_comentarios_diarios = IntegerField(default=10)
 
-class Lector(Usuario):
-    def __init__(self, id_usuario: int, nombre: str, correo: str, contrasena: str, intereses: str, fecha_registro: date):
-        # Hereda de Usuario
-        super().__init__(id_usuario, nombre, correo, contrasena)
-        
-        # Atributos específicos del Lector
-        self._intereses = intereses
-        self._fecha_registro = fecha_registro
-
-    # Métodos del Lector
-    def registrar_comentario(self, noticia, texto: str):
-        """Registra un comentario en una noticia específica y retorna el objeto Comentario."""
-        pass 
-
-    def marcar_intereses(self, noticia) -> bool:
-        """Marca una noticia según los intereses del lector."""
-        pass
-
-    def desmarcar_intereses(self, noticia) -> bool:
-        """Desmarca el interés sobre una noticia."""
-        pass
+    class Meta:
+        table_name = 'lectores'

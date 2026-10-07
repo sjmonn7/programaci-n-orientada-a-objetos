@@ -1,21 +1,17 @@
-class Usuario:
-    def __init__(self, id_usuario: int, nombre: str, correo: str, contrasena: str):
-        # Atributos definidos en el UML
-        self._id_usuario = id_usuario
-        self._nombre = nombre
-        self._correo = correo
-        self._contrasena = contrasena
+from peewee import Model, AutoField, CharField, DateTimeField, DateField, IntegerField, DecimalField, BooleanField, ForeignKeyField
+from conexion import db
 
-    # Métodos definidos en el UML
-    def iniciar_sesion(self, correo: str, contrasena: str) -> bool:
-        """Valida las credenciales del usuario."""
-        return self._correo == correo and self._contrasena == contrasena
+class ModelBase(Model):
+    class Meta:
+        database = db
 
-    def actualizar_perfil(self, nombre: str, correo: str) -> bool:
-        """Actualiza la información del perfil del usuario."""
-        try:
-            self._nombre = nombre
-            self._correo = correo
-            return True
-        except Exception:
-            return False
+class Usuario(ModelBase):
+    id_usuario = AutoField()
+    nombre = CharField(max_length=100)
+    correo = CharField(max_length=254, unique=True)
+    contrasena = CharField(max_length=255)
+    estado_cuenta = CharField(default='activo')
+    fecha_creacion = DateTimeField()
+
+    class Meta:
+        table_name = 'usuarios'
