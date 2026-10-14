@@ -1,10 +1,18 @@
-class Recurso:
-    def __init__(self, id_recurso: int, url: str, tipo: str):
-        # Atributos base del Recurso[cite: 1]
-        self._id_recurso = id_recurso
-        self._url = url
-        self._tipo = tipo
+from peewee import AutoField, BooleanField, CharField, ForeignKeyField, IntegerField, Model
 
-    def validar_enlace(self) -> bool:
-        """Verifica que la URL del recurso sea válida."""
-        pass
+from src.conexion import db
+from src.modelos.noticia import Noticia
+
+
+class Recurso(Model):
+    """Base de imagen y video. Tipo: 'imagen' o 'video'."""
+    id_recurso = AutoField()
+    noticia = ForeignKeyField(Noticia, column_name="id_noticia", backref="recursos", on_delete="CASCADE")
+    url = CharField(max_length=500)
+    tipo = CharField(max_length=10)
+    peso_kb = IntegerField(null=True)
+    derechos_aprobados = BooleanField(default=False)
+
+    class Meta:
+        database = db
+        table_name = "recursos"

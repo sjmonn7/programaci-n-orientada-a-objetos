@@ -1,14 +1,19 @@
-from .recurso import Recurso
+from peewee import BooleanField, CharField, ForeignKeyField, IntegerField, Model
 
-class Video(Recurso):
-    def __init__(self, id_recurso: int, url: str, tipo: str, duracion_segundos: int, calidad: str):
-        # Herencia de la clase padre Recurso[cite: 1]
-        super().__init__(id_recurso, url, tipo)
-        
-        # Atributos específicos de Video[cite: 1]
-        self._duracion_segundos = duracion_segundos
-        self._calidad = calidad
+from src.conexion import db
+from src.modelos.recurso import Recurso
 
-    def reproducir(self) -> bool:
-        """Inicia la reproducción del video."""
-        pass
+
+class Video(Model):
+    # PK compartida con recursos (herencia por tabla)
+    recurso = ForeignKeyField(Recurso, primary_key=True, column_name="id_recurso",
+                              backref="video", on_delete="CASCADE")
+    duracion_segundos = IntegerField(null=True)
+    calidad = CharField(max_length=20, null=True)
+    subtitulos_activos = BooleanField(default=False)
+    requiere_transcodificacion = BooleanField(default=False)
+    plataforma_alojamiento = CharField(max_length=100, null=True)
+
+    class Meta:
+        database = db
+        table_name = "videos"

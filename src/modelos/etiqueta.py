@@ -1,5 +1,20 @@
-class Etiqueta:
-    def __init__(self, id_etiqueta: int, nombre: str):
-        # Atributos de Etiqueta[cite: 1]
-        self._id_etiqueta = id_etiqueta
-        self._nombre = nombre
+from datetime import datetime
+ 
+from peewee import AutoField, BooleanField, CharField, DateTimeField, Model
+ 
+from src.conexion import db
+ 
+ 
+class Etiqueta(Model):
+    id_etiqueta = AutoField()
+    nombre = CharField(max_length=100, unique=True)
+    aprobada_moderacion = BooleanField(default=False)
+    fecha_creacion = DateTimeField(default=datetime.now)
+ 
+    class Meta:
+        database = db
+        table_name = "etiquetas"
+ 
+    def __str__(self):
+        return self.nombre
+ 

@@ -1,14 +1,19 @@
-from .recurso import Recurso
+from peewee import BooleanField, CharField, ForeignKeyField, Model, TextField
 
-class Imagen(Recurso):
-    def __init__(self, id_recurso: int, url: str, tipo: str, resolucion: str, formato: str):
-        # Herencia de la clase padre Recurso[cite: 1]
-        super().__init__(id_recurso, url, tipo)
-        
-        # Atributos específicos de Imagen[cite: 1]
-        self._resolucion = resolucion
-        self._formato = formato
+from src.conexion import db
+from src.modelos.recurso import Recurso
 
-    def obtener_dimensiones(self) -> str:
-        """Devuelve la resolución de la imagen."""
-        pass
+
+class Imagen(Model):
+    # PK compartida con recursos (herencia por tabla)
+    recurso = ForeignKeyField(Recurso, primary_key=True, column_name="id_recurso",
+                              backref="imagen", on_delete="CASCADE")
+    resolucion = CharField(max_length=50, null=True)
+    formato = CharField(max_length=20, null=True)
+    relacion_aspecto = CharField(max_length=20, null=True)
+    requiere_marca_agua = BooleanField(default=False)
+    texto_alternativo = TextField(null=True)
+
+    class Meta:
+        database = db
+        table_name = "imagenes"
