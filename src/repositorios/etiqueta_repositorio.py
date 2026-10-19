@@ -30,17 +30,8 @@ class EtiquetaRepositorio:
                 .execute())
 
     @staticmethod
-    def renombrar(id_etiqueta, nuevo_nombre):
-        nuevo_nombre = nuevo_nombre.strip().lower()
-        if not nuevo_nombre:
-            raise ValueError("El nombre de la etiqueta no puede estar vacío.")
-        return (Etiqueta.update(nombre=nuevo_nombre)
-                .where(Etiqueta.id_etiqueta == id_etiqueta)
-                .execute())
-
-    @staticmethod
     def uso(id_etiqueta):
-        """Cuántas noticias usan esta etiqueta (equivale a vw_etiquetas_uso)."""
+        """Equivale a la vista vw_etiquetas_uso."""
         return (NoticiaEtiqueta.select()
                 .where(NoticiaEtiqueta.etiqueta == id_etiqueta)
                 .count())

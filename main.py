@@ -1,44 +1,42 @@
-from prettytable import PrettyTable
- 
+from peewee import OperationalError
+
+from src.base_de_datos import crear_tablas
 from src.conexion import db
-from src.modelos.usuario import Usuario
-from src.modelos.lector import Lector
-from src.modelos.periodista import Periodista
-from src.modelos.noticia import Noticia
-from src.modelos.categoria import Categoria
-from src.modelos.etiqueta import Etiqueta
-from src.modelos.comentario import Comentario
-from src.modelos.recurso import Recurso
-from src.modelos.imagen import Imagen
-from src.modelos.video import Video
-from src.modelos.noticia_categoria import NoticiaCategoria
-from src.modelos.noticia_etiqueta import NoticiaEtiqueta
-from src.modelos.lector_noticia_favorito import LectorNoticiaFavorito
-from src.repositorios.etiqueta_repositorio import EtiquetaRepositorio
- 
- 
+from src.datos_iniciales import cargar_datos_iniciales
+from src.presentacion.menu_principal import MenuPrincipal
+from src.presentacion.utilidades import mostrar_error, mostrar_info
+from src.repositorios.usuario_repositorio import UsuarioRepositorio
+
+
+def preparar_base_de_datos():
+    crear_tablas()
+    protegidas = UsuarioRepositorio.proteger_contrasenas_antiguas()
+    if protegidas:
+        mostrar_info(f"Se protegieron {protegidas} contraseña(s) que estaban en texto plano "
+                     "(ahora se guardan con hash y sal).")
+    cargar_datos_iniciales()
+
+
 def main():
-    print("Iniciando conexión...")
-    db.connect()
- 
-    modelos = [Usuario, Lector, Periodista, Categoria, Noticia, Etiqueta, Comentario,
-               Recurso, Imagen, Video, NoticiaCategoria, NoticiaEtiqueta, LectorNoticiaFavorito]
-    db.create_tables(modelos, safe=True)
-    print("¡Base de datos lista!\n")
- 
-    print("=== LISTADO DE USUARIOS ===")
-    for usuario in Usuario.select():
-        print(f'{usuario.id_usuario} - {usuario.nombre} - {usuario.correo} - {usuario.estado_cuenta}')
- 
-    print("\n=== LISTADO DE ETIQUETAS ===")
-    tabla = PrettyTable(["ID", "Nombre", "Aprobada"])
-    for etiqueta in EtiquetaRepositorio.listar():
-        tabla.add_row([etiqueta.id_etiqueta, etiqueta.nombre,
-                       "Sí" if etiqueta.aprobada_moderacion else "No"])
-    print(tabla)
- 
-    db.close()
- 
- 
+    print("Iniciando conexión con la base de datos...")
+    try:
+        db.connect(reuse_if_open=True)
+    except OperationalError as error:
+        mostrar_error(f"No se pudo conectar a MySQL: {error}")
+        print("Revisa que WampServer esté encendido (ícono verde) y que los datos de "
+              "src/conexion.py sean correctos.")
+        return
+
+    try:
+        preparar_base_de_datos()
+        MenuPrincipal().ejecutar()
+        print("\n¡Hasta luego!")
+    except (KeyboardInterrupt, EOFError):
+        print("\n\nPrograma interrumpido. ¡Hasta luego!")
+    finally:
+        if not db.is_closed():
+            db.close()
+
+
 if __name__ == "__main__":
     main()

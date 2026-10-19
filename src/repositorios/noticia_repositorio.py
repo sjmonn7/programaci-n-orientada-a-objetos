@@ -1,18 +1,39 @@
 from src.modelos.noticia import Noticia
+from src.modelos.noticia_categoria import NoticiaCategoria
+
 
 class NoticiaRepositorio:
-    # Con Peewee ya no necesitamos el método __init__ ni instanciar la conexión aquí
 
     @staticmethod
-    def listar_todas():
-        """Obtiene todas las noticias usando el ORM"""
-        return Noticia.select()
+    def obtener(id_noticia):
+        return Noticia.get_or_none(Noticia.id_noticia == id_noticia)
 
     @staticmethod
-    def crear_noticia(titulo, contenido, id_periodista):
-        """Crea una nueva noticia"""
-        return Noticia.create(
-            titulo=titulo,
-            contenido=contenido,
-            periodista=id_periodista
-        )
+    def obtener_publicada(id_noticia):
+        return Noticia.get_or_none((Noticia.id_noticia == id_noticia)
+                                   & (Noticia.estado == "publicada"))
+
+    @staticmethod
+    def obtener_de_periodista(id_noticia, periodista):
+        return Noticia.get_or_none((Noticia.id_noticia == id_noticia)
+                                   & (Noticia.periodista == periodista))
+
+    @staticmethod
+    def listar_publicadas(categoria=None):
+        consulta = Noticia.select().where(Noticia.estado == "publicada")
+        if categoria is not None:
+            consulta = (consulta.join(NoticiaCategoria)
+                        .where(NoticiaCategoria.categoria == categoria))
+        return consulta.order_by(Noticia.fecha_publicacion.desc())
+
+    @staticmethod
+    def buscar_publicadas(texto):
+        return (Noticia.select()
+                .where((Noticia.estado == "publicada") & (Noticia.titulo.contains(texto)))
+                .order_by(Noticia.fecha_publicacion.desc()))
+
+    @staticmethod
+    def listar_de_periodista(periodista):
+        return (Noticia.select()
+                .where(Noticia.periodista == periodista)
+                .order_by(Noticia.fecha_creacion.desc()))

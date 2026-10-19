@@ -1,13 +1,10 @@
-from peewee import BooleanField, CharField, ForeignKeyField, Model, TextField
+from peewee import SQL, BooleanField, CharField, IntegerField, TextField
 
-from src.conexion import db
-from src.modelos.recurso import Recurso
+from src.modelos.base import ModelBase
 
 
-class Imagen(Model):
-    # PK compartida con recursos (herencia por tabla)
-    recurso = ForeignKeyField(Recurso, primary_key=True, column_name="id_recurso",
-                              backref="imagen", on_delete="CASCADE")
+class Imagen(ModelBase):
+    id_recurso = IntegerField(primary_key=True)  # misma clave primaria que Recurso
     resolucion = CharField(max_length=50, null=True)
     formato = CharField(max_length=20, null=True)
     relacion_aspecto = CharField(max_length=20, null=True)
@@ -15,5 +12,9 @@ class Imagen(Model):
     texto_alternativo = TextField(null=True)
 
     class Meta:
-        database = db
         table_name = "imagenes"
+        constraints = [SQL("FOREIGN KEY (id_recurso) REFERENCES recursos (id_recurso) "
+                           "ON DELETE CASCADE")]
+
+    def obtener_dimensiones(self):
+        return self.resolucion or "sin dato"
