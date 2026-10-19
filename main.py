@@ -1,3 +1,5 @@
+import sys
+
 from peewee import OperationalError
 
 from src.base_de_datos import crear_tablas
@@ -29,7 +31,12 @@ def main():
 
     try:
         preparar_base_de_datos()
-        MenuPrincipal().ejecutar()
+        if "--consola" in sys.argv:
+            MenuPrincipal().ejecutar()
+        else:
+            # import local: el modo consola funciona aunque no esté instalado ttkbootstrap
+            from src.interfaz.app import AplicacionNoticias
+            AplicacionNoticias().mainloop()
         print("\n¡Hasta luego!")
     except (KeyboardInterrupt, EOFError):
         print("\n\nPrograma interrumpido. ¡Hasta luego!")
