@@ -1,10 +1,15 @@
-from peewee import MySQLDatabase
+# import os
 
-# Configuración adaptada para el WampServer de la sede
+# from dotenv import load_dotenv
+from peewee import MySQLDatabase
+from decouple import config
+
+# load_dotenv()  # lee los datos del archivo .env
+
 db = MySQLDatabase(
-    'noticiero',          # El nombre exacto de tu base de datos
-    user='root',          # Usuario por defecto en WampServer
-    password='',          # ¡Ojo aquí! En WampServer la contraseña suele ir VACÍA
-    host='localhost',
-    port=3306
+    config('DB_NAME'),
+    user=config("DB_USER"),
+    password=config("DB_PASSWORD"),
+    host=config("DB_HOST"),
+    port=config("DB_PORT", cast=int),
 )
