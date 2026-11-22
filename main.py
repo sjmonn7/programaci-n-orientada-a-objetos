@@ -5,6 +5,7 @@ from peewee import OperationalError
 from src.base_de_datos import crear_tablas
 from src.conexion import db
 from src.datos_iniciales import cargar_datos_iniciales
+from src.migraciones import planificar
 from src.presentacion.menu_principal import MenuPrincipal
 from src.presentacion.utilidades import mostrar_error, mostrar_info
 from src.repositorios.usuario_repositorio import UsuarioRepositorio
@@ -12,6 +13,9 @@ from src.repositorios.usuario_repositorio import UsuarioRepositorio
 
 def preparar_base_de_datos():
     crear_tablas()
+    if planificar(db):
+        raise ValueError("El esquema necesita actualizarse. Revisa primero con "
+                         "python -m src.migraciones; consulta las instrucciones del README.")
     protegidas = UsuarioRepositorio.proteger_contrasenas_antiguas()
     if protegidas:
         mostrar_info(f"Se protegieron {protegidas} contraseña(s) que estaban en texto plano "
@@ -40,6 +44,8 @@ def main():
         print("\n¡Hasta luego!")
     except (KeyboardInterrupt, EOFError):
         print("\n\nPrograma interrumpido. ¡Hasta luego!")
+    except ValueError as error:
+        mostrar_error(str(error))
     finally:
         if not db.is_closed():
             db.close()

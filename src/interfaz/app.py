@@ -9,6 +9,7 @@ from src.interfaz.estilos import TEMA_CLARO, TEMA_OSCURO
 from src.interfaz.pantalla_acceso import PantallaAcceso
 from src.interfaz.pantalla_lector import PantallaLector
 from src.interfaz.pantalla_periodista import PantallaPeriodista
+from src.interfaz.pantalla_admin import PantallaAdmin
 
 
 class AplicacionNoticias(tb.Window):
@@ -35,12 +36,22 @@ class AplicacionNoticias(tb.Window):
 
     def entrar(self, usuario, como=None):
         """Abre la pantalla del perfil pedido; si no se indica, la de lector si la tiene."""
+        usuario = usuario.exigir_cuenta_activa()
+        if como is None and usuario.es_admin:
+            como = "administrador"
+        if como == "administrador":
+            if not usuario.es_admin:
+                raise PermissionError("Esta cuenta no es administradora.")
+            self._cambiar_pantalla(PantallaAdmin(self, usuario))
+            return
         lector = usuario.perfil_lector()
         periodista = usuario.perfil_periodista()
         if lector is None and periodista is None:
             raise ValueError("Tu cuenta no tiene perfil de lector ni de periodista.")
         if como is None:
             como = "lector" if lector is not None else "periodista"
+        if como not in usuario.roles():
+            raise PermissionError("Tu cuenta no tiene ese perfil.")
         if como == "lector":
             self._cambiar_pantalla(PantallaLector(self, usuario, lector))
         else:

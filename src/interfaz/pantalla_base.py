@@ -75,8 +75,9 @@ class PantallaConMenu(PantallaBase):
         tb.Label(self._barra, text="MENÚ", font=fuente(8, True), bootstyle=f"{BARRA} secondary").pack(
             anchor="w", padx=14, pady=(0, 4))
         self._botones = []
+        navegacion = tb.ScrolledFrame(self._barra, auto_hide=True, bootstyle=BARRA)
         for indice, (texto, _metodo) in enumerate(self.secciones()):
-            boton = BotonNavegacion(self._barra, texto, lambda i=indice: self.abrir_seccion(i))
+            boton = BotonNavegacion(navegacion, texto, lambda i=indice: self.abrir_seccion(i))
             boton.pack(fill="x", pady=1)
             self._botones.append(boton)
 
@@ -86,10 +87,12 @@ class PantallaConMenu(PantallaBase):
         oscuro = tb.BooleanVar(value=self.app.style.theme_use() == TEMA_OSCURO)
         tb.Checkbutton(self._barra, text="Modo oscuro", variable=oscuro, bootstyle=f"{BARRA} toggle",
                        command=self.app.alternar_tema).pack(side="bottom", anchor="w", padx=4, pady=12)
-        if len(self.usuario.roles()) == 2:
-            otro = "periodista" if self.ROL == "lector" else "lector"
+        for otro in self.usuario.roles():
+            if otro == self.ROL:
+                continue
             tb.Button(self._barra, text=f"Entrar como {otro}", bootstyle="primary outline",
-                      command=lambda: self.app.entrar(self.usuario, como=otro)).pack(side="bottom", fill="x")
+                      command=lambda rol=otro: self.app.entrar(self.usuario, como=rol)).pack(side="bottom", fill="x")
+        navegacion.pack(fill="both", expand=True)
         self.marcar_seccion(self._indice)
 
     def marcar_seccion(self, indice):
@@ -98,6 +101,7 @@ class PantallaConMenu(PantallaBase):
             boton.elegir(i == indice)
 
     def abrir_seccion(self, indice):
+        self.usuario = self.usuario.exigir_cuenta_activa()
         self.marcar_seccion(indice)
         self.secciones()[indice][1]()
 

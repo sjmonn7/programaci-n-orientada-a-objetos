@@ -1,7 +1,7 @@
 from src.presentacion.menu_base import MenuBase
 from src.presentacion.utilidades import (formatear_fecha, mostrar_ok, mostrar_titulo, pausar,
                                          pedir_contrasena, pedir_texto)
-from src.validaciones import validar_contrasena
+from src.validaciones import validar_contrasena, AYUDA_CONTRASENA
 
 
 class MenuPerfil(MenuBase):
@@ -41,9 +41,10 @@ class MenuPerfil(MenuBase):
         pausar()
 
     def cambiar_contrasena(self):
+        print(AYUDA_CONTRASENA)
         actual = pedir_contrasena("Contraseña actual")
         while True:
-            nueva = pedir_contrasena("Nueva contraseña (mínimo 6 caracteres)")
+            nueva = pedir_contrasena("Nueva contraseña (mínimo 12 caracteres)")
             try:
                 validar_contrasena(nueva)
             except ValueError as error:
@@ -54,7 +55,7 @@ class MenuPerfil(MenuBase):
                 continue
             break
         self.usuario.cambiar_contrasena(actual, nueva)
-        mostrar_ok("Contraseña cambiada. Se guardó con hash y sal.")
+        mostrar_ok("Contraseña cambiada.")
         pausar()
 
 

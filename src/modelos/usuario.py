@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from peewee import AutoField, CharField, DateTimeField
+from peewee import AutoField, BooleanField, CharField, DateTimeField
 
 from src.modelos.base import ModelBase
 from src.seguridad import hashear_contrasena, verificar_contrasena
@@ -13,6 +13,7 @@ class Usuario(ModelBase):
     correo = CharField(max_length=254, unique=True)
     contrasena = CharField(max_length=255)  # solo el hash, nunca la contraseña real
     estado_cuenta = CharField(max_length=20, default="activo")  # activo / suspendido / eliminado
+    es_admin = BooleanField(default=False)
     fecha_creacion = DateTimeField(default=datetime.now)
 
     class Meta:
@@ -20,6 +21,28 @@ class Usuario(ModelBase):
 
     def esta_activo(self):
         return self.estado_cuenta == "activo"
+
+    def exigir_cuenta_activa(self):
+        actual = Usuario.get_or_none(Usuario.id_usuario == self.id_usuario)
+        if actual is None or not actual.esta_activo():
+            raise PermissionError("La cuenta ya no está activa. Vuelve a iniciar sesión.")
+        return actual
+
+    def eliminar_cuenta(self, contrasena):
+        """Baja lógica propia: conserva contenido y correo; no habilita borrado administrativo."""
+        actual = self.exigir_cuenta_activa()
+        if actual.es_admin:
+            raise PermissionError("Un administrador no puede eliminar su propia cuenta.")
+        if not verificar_contrasena(contrasena, actual.contrasena):
+            raise ValueError("La contraseña no es correcta.")
+        cambiadas = (Usuario.update(estado_cuenta="eliminado")
+                     .where((Usuario.id_usuario == self.id_usuario)
+                            & (Usuario.estado_cuenta == "activo")
+                            & (Usuario.contrasena == actual.contrasena)).execute())
+        if not cambiadas:
+            raise PermissionError("La cuenta cambió durante la operación. Vuelve a iniciar sesión.")
+        self.estado_cuenta = "eliminado"
+        return True
 
     @classmethod
     def iniciar_sesion(cls, correo, contrasena):
@@ -32,6 +55,8 @@ class Usuario(ModelBase):
         return usuario
 
     def actualizar_perfil(self, nombre, correo):
+        # Edición personal: valida que el correo no pertenezca a otra cuenta.
+        self.exigir_cuenta_activa()
         nombre = validar_texto(nombre, "El nombre", 100)
         correo = validar_correo(correo)
         repetido = (Usuario.select()
@@ -41,15 +66,17 @@ class Usuario(ModelBase):
             raise ValueError("Ese correo ya pertenece a otra cuenta.")
         self.nombre = nombre
         self.correo = correo
-        self.save()
+        self.save(only=[Usuario.nombre, Usuario.correo])
         return True
 
     def cambiar_contrasena(self, actual, nueva):
-        if not verificar_contrasena(actual, self.contrasena):
+        # Solo cambia la clave después de verificar la contraseña vigente.
+        vigente = self.exigir_cuenta_activa()
+        if not verificar_contrasena(actual, vigente.contrasena):
             raise ValueError("La contraseña actual no es correcta.")
         validar_contrasena(nueva)
         self.contrasena = hashear_contrasena(nueva)
-        self.save()
+        self.save(only=[Usuario.contrasena])
         return True
 
     def perfil_lector(self):
@@ -61,7 +88,10 @@ class Usuario(ModelBase):
         return Periodista.get_or_none(Periodista.id_usuario == self.id_usuario)
 
     def roles(self):
+        # Reúne los perfiles disponibles para decidir qué pantallas mostrar.
         roles = []
+        if self.es_admin:
+            roles.append("administrador")
         if self.perfil_lector() is not None:
             roles.append("lector")
         if self.perfil_periodista() is not None:

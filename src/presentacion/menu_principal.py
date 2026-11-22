@@ -5,7 +5,7 @@ from src.presentacion.menu_periodista import MenuPeriodista
 from src.presentacion.utilidades import (mostrar_error, mostrar_info, mostrar_ok, pausar,
                                          pedir_contrasena, pedir_entero, pedir_si_no, pedir_texto)
 from src.repositorios.usuario_repositorio import UsuarioRepositorio
-from src.validaciones import correo_valido, validar_contrasena
+from src.validaciones import correo_valido, validar_contrasena, AYUDA_CONTRASENA
 
 MAX_INTENTOS = 3
 
@@ -36,6 +36,11 @@ class MenuPrincipal(MenuBase):
         pausar()
 
     def _entrar(self, usuario):
+        usuario = usuario.exigir_cuenta_activa()
+        if usuario.es_admin:
+            from src.presentacion.menu_admin import MenuAdmin
+            MenuAdmin(usuario).ejecutar()
+            return
         lector = usuario.perfil_lector()
         periodista = usuario.perfil_periodista()
 
@@ -84,7 +89,7 @@ class MenuPrincipal(MenuBase):
 
         usuario = UsuarioRepositorio.registrar_usuario(
             nombre, correo, contrasena, datos_lector, datos_periodista)
-        mostrar_ok("¡Cuenta creada con éxito! Tu contraseña se guardó protegida (hash + sal).")
+        mostrar_ok("¡Cuenta creada con éxito!")
         if pedir_si_no("¿Quieres iniciar sesión ahora?"):
             self._entrar(usuario)
 
@@ -99,8 +104,9 @@ class MenuPrincipal(MenuBase):
                 return correo
 
     def _pedir_contrasena_nueva(self):
+        print(AYUDA_CONTRASENA)
         while True:
-            contrasena = pedir_contrasena("Contraseña (mínimo 6 caracteres)")
+            contrasena = pedir_contrasena("Contraseña (mínimo 12 caracteres)")
             try:
                 validar_contrasena(contrasena)
             except ValueError as error:

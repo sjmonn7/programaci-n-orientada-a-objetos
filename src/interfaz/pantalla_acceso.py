@@ -6,6 +6,7 @@ from src.interfaz.estilos import TARJETA, fuente
 from src.interfaz.pantalla_base import PantallaBase
 from src.modelos.usuario import Usuario
 from src.repositorios.usuario_repositorio import UsuarioRepositorio
+from src.validaciones import AYUDA_CONTRASENA
 
 PORTADA = "@primary"  # el panel de presentación usa el color principal como fondo
 MAX_INTENTOS = 3
@@ -113,7 +114,9 @@ class PantallaAcceso(PantallaBase):
         tb.Label(formulario, text="Crea tu cuenta", font=fuente(18, True), bootstyle=TARJETA).pack(anchor="w")
         self._nombre = self._apilar(formulario, "Nombre completo")
         self._correo = self._apilar(formulario, "Correo (ej: nombre@dominio.cl)")
-        self._clave = self._apilar(formulario, "Contraseña (mínimo 6 caracteres)", oculto=True)
+        self._clave = self._apilar(formulario, "Contraseña (mínimo 12 caracteres)", oculto=True)
+        tb.Label(formulario, text=AYUDA_CONTRASENA, wraplength=330,
+                 bootstyle=f"{TARJETA} secondary").pack(anchor="w")
         self._clave_repetida = self._apilar(formulario, "Repite la contraseña", oculto=True)
 
         tb.Label(formulario, text="Tipo de cuenta", font=fuente(9, True), bootstyle=TARJETA).pack(
@@ -159,5 +162,5 @@ class PantallaAcceso(PantallaBase):
 
         usuario = UsuarioRepositorio.registrar_usuario(self._nombre.get(), self._correo.get(), self._clave.get(),
                                                        datos_lector, datos_periodista)
-        notificar("Tu contraseña se guardó protegida (hash + sal).", titulo="¡Cuenta creada!")
+        notificar("Tu cuenta está lista.", titulo="¡Cuenta creada!")
         self.app.entrar(usuario)

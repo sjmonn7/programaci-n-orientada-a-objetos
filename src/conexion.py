@@ -1,10 +1,5 @@
-# import os
-
-# from dotenv import load_dotenv
 from peewee import MySQLDatabase
 from decouple import config
-
-# load_dotenv()  # lee los datos del archivo .env
 
 db = MySQLDatabase(
     config('DB_NAME'),

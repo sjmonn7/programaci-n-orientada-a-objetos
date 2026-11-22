@@ -35,3 +35,4 @@ def verificar_contrasena(contrasena, guardado):
         return False  # el hash guardado está dañado
     # compare_digest evita filtrar información por el tiempo que tarda la comparación
     return hmac.compare_digest(calculado, esperado)
+  

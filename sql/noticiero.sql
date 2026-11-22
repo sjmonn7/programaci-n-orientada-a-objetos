@@ -7,6 +7,7 @@
 -- Versión del servidor: 9.1.0
 -- Versión de PHP: 8.3.14
 
+-- Solo para restaurar en una base vacía. Para actualizar: python -m src.migraciones
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -142,7 +143,7 @@ CREATE TABLE IF NOT EXISTS `lectores` (
   `idioma_preferido` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'es',
   `limite_comentarios_diarios` smallint UNSIGNED NOT NULL DEFAULT '10',
   PRIMARY KEY (`id_usuario`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Volcado de datos para la tabla `lectores`
@@ -270,7 +271,7 @@ CREATE TABLE IF NOT EXISTS `periodistas` (
   `alias_seudonimo` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `reputacion_score` decimal(4,2) NOT NULL DEFAULT '0.00',
   PRIMARY KEY (`id_usuario`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Volcado de datos para la tabla `periodistas`
@@ -318,6 +319,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `correo` varchar(254) NOT NULL,
   `contrasena` varchar(255) NOT NULL COMMENT 'Guardar solo el hash (bcrypt/argon2)',
   `estado_cuenta` enum('activo','suspendido','eliminado') NOT NULL DEFAULT 'activo',
+  `es_admin` tinyint(1) NOT NULL DEFAULT '0',
   `fecha_creacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_usuario`),
   UNIQUE KEY `correo` (`correo`)
@@ -405,6 +407,21 @@ DROP TABLE IF EXISTS `vw_periodistas_articulos`;
 
 DROP VIEW IF EXISTS `vw_periodistas_articulos`;
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_periodistas_articulos`  AS SELECT `p`.`id_usuario` AS `id_periodista`, count(`n`.`id_noticia`) AS `articulos_redactados` FROM (`periodistas` `p` left join `noticias` `n` on((`n`.`id_periodista` = `p`.`id_usuario`))) GROUP BY `p`.`id_usuario` ;
+-- Agregar relaciones después de cargar todas las tablas permite validar los datos.
+ALTER TABLE `lectores` ADD CONSTRAINT `fk_lectores_id_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
+ALTER TABLE `periodistas` ADD CONSTRAINT `fk_periodistas_id_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
+ALTER TABLE `noticias` ADD CONSTRAINT `fk_noticias_id_periodista` FOREIGN KEY (`id_periodista`) REFERENCES `periodistas` (`id_usuario`) ON DELETE RESTRICT;
+ALTER TABLE `noticia_categoria` ADD CONSTRAINT `fk_noticia_categoria_id_noticia` FOREIGN KEY (`id_noticia`) REFERENCES `noticias` (`id_noticia`) ON DELETE CASCADE;
+ALTER TABLE `noticia_categoria` ADD CONSTRAINT `fk_noticia_categoria_id_categoria` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id_categoria`) ON DELETE CASCADE;
+ALTER TABLE `noticia_etiqueta` ADD CONSTRAINT `fk_noticia_etiqueta_id_noticia` FOREIGN KEY (`id_noticia`) REFERENCES `noticias` (`id_noticia`) ON DELETE CASCADE;
+ALTER TABLE `noticia_etiqueta` ADD CONSTRAINT `fk_noticia_etiqueta_id_etiqueta` FOREIGN KEY (`id_etiqueta`) REFERENCES `etiquetas` (`id_etiqueta`) ON DELETE CASCADE;
+ALTER TABLE `recursos` ADD CONSTRAINT `fk_recursos_id_noticia` FOREIGN KEY (`id_noticia`) REFERENCES `noticias` (`id_noticia`) ON DELETE CASCADE;
+ALTER TABLE `imagenes` ADD CONSTRAINT `fk_imagenes_id_recurso` FOREIGN KEY (`id_recurso`) REFERENCES `recursos` (`id_recurso`) ON DELETE CASCADE;
+ALTER TABLE `videos` ADD CONSTRAINT `fk_videos_id_recurso` FOREIGN KEY (`id_recurso`) REFERENCES `recursos` (`id_recurso`) ON DELETE CASCADE;
+ALTER TABLE `comentarios` ADD CONSTRAINT `fk_comentarios_id_noticia` FOREIGN KEY (`id_noticia`) REFERENCES `noticias` (`id_noticia`) ON DELETE CASCADE;
+ALTER TABLE `comentarios` ADD CONSTRAINT `fk_comentarios_id_lector` FOREIGN KEY (`id_lector`) REFERENCES `lectores` (`id_usuario`) ON DELETE SET NULL;
+ALTER TABLE `lector_noticia_favorito` ADD CONSTRAINT `fk_lector_noticia_favorito_id_lector` FOREIGN KEY (`id_lector`) REFERENCES `lectores` (`id_usuario`) ON DELETE CASCADE;
+ALTER TABLE `lector_noticia_favorito` ADD CONSTRAINT `fk_lector_noticia_favorito_id_noticia` FOREIGN KEY (`id_noticia`) REFERENCES `noticias` (`id_noticia`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

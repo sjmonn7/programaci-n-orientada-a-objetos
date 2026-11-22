@@ -4,6 +4,7 @@ from src.interfaz import imagenes
 from src.interfaz.componentes import campo, mostrar_error, notificar
 from src.interfaz.estilos import TARJETA, fuente
 from src.presentacion.utilidades import formatear_fecha
+from src.validaciones import AYUDA_CONTRASENA
 
 
 class PanelPerfil(tb.ScrolledFrame):
@@ -49,7 +50,7 @@ class PanelPerfil(tb.ScrolledFrame):
         tb.Label(textos, text=self.usuario.correo).pack(anchor="w")
         perfiles = tb.Frame(textos)
         perfiles.pack(anchor="w", pady=(6, 0))
-        for rol, color in (("lector", "info"), ("periodista", "primary")):
+        for rol, color in (("lector", "info"), ("periodista", "primary"), ("administrador", "warning")):
             if rol in self.usuario.roles():
                 tb.Label(perfiles, text=rol.capitalize(), bootstyle=f"@{color}", padding=(10, 2),
                          font=fuente(8, True)).pack(side="left", padx=(0, 6))
@@ -57,6 +58,7 @@ class PanelPerfil(tb.ScrolledFrame):
                  bootstyle="secondary").pack(side="left")
 
     def _datos_cuenta(self):
+        # Guarda el nombre y correo de la cuenta que inició sesión.
         cuerpo = self.tarjeta("Datos de la cuenta", "Tu nombre y el correo con el que inicias sesión")
         nombre = self.campo_en_tarjeta(cuerpo, "Nombre", valor=self.usuario.nombre)
         correo = self.campo_en_tarjeta(cuerpo, "Correo", valor=self.usuario.correo)
@@ -69,9 +71,12 @@ class PanelPerfil(tb.ScrolledFrame):
         self.boton_guardar(cuerpo, "Guardar datos", guardar)
 
     def _cambio_contrasena(self):
-        cuerpo = self.tarjeta("Cambiar contraseña", "Se guarda protegida con hash y sal, nunca en texto plano")
+        # El dueño verifica su contraseña actual antes de establecer la nueva.
+        cuerpo = self.tarjeta("Cambiar contraseña")
+        tb.Label(cuerpo, text=AYUDA_CONTRASENA, wraplength=480,
+                 bootstyle=f"{TARJETA} secondary").pack(anchor="w")
         actual = self.campo_en_tarjeta(cuerpo, "Contraseña actual", oculto=True)
-        nueva = self.campo_en_tarjeta(cuerpo, "Nueva contraseña (mínimo 6 caracteres)", oculto=True)
+        nueva = self.campo_en_tarjeta(cuerpo, "Nueva contraseña (mínimo 12 caracteres)", oculto=True)
         repetida = self.campo_en_tarjeta(cuerpo, "Repite la nueva contraseña", oculto=True)
 
         def cambiar():
