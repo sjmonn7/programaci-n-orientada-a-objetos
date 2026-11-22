@@ -38,7 +38,7 @@ Crear la base en MySQL y configurar estas variables en `.env`:
 ```dotenv
 DB_NAME=noticiero
 DB_USER=usuario
-DB_PASSWORD=tu_clave_mysql
+DB_PASSWORD=ColoColo1312-
 DB_HOST=localhost
 DB_PORT=3306
 ```
