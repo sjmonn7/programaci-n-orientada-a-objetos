@@ -1,6 +1,6 @@
 import unittest
 
-from src.validaciones import validar_contrasena
+from auxiliares.validaciones import validar_contrasena
 
 
 class PruebasPoliticaContrasenas(unittest.TestCase):

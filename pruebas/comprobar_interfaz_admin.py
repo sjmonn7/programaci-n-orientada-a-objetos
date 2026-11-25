@@ -4,8 +4,8 @@ Ejecutar: python -m pruebas.comprobar_interfaz_admin (requiere escritorio/Tk).
 No inicia main.py ni conecta con MySQL.
 """
 from pruebas.test_integridad import PruebasCuentas
-from src.interfaz.app import AplicacionNoticias
-from src.modelos.comentario import Comentario
+from presentacion.interfaz.app import AplicacionNoticias
+from datos.modelos.comentario import Comentario
 
 
 def main():

@@ -1,2 +1,7 @@
+# Entorno virtual y configuración local
+.venv/
+.env
+
+# Python
 __pycache__/
 *.pyc

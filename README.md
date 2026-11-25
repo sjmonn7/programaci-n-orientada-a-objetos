@@ -4,6 +4,8 @@ Proyecto académico de la asignatura **Programación Orientada a Objetos**. Noti
 
 Este manual explica cómo utilizar la aplicación, qué responsabilidad tiene cada perfil y cómo esas responsabilidades se representan en el código.
 
+Esta versión continúa el proyecto de la **Evaluación N.º 2**. Conserva sus entidades y las interfaces gráfica y de consola, reorganizadas en las capas `datos`, `negocio`, `presentacion` y `auxiliares`.
+
 ## 1. Cómo funciona el sistema
 
 El funcionamiento se organiza alrededor de tres roles:
@@ -31,23 +33,57 @@ python -m venv .venv
 
 Los comandos se escriben en la terminal, no dentro de los archivos `.py`. `requirements.txt` contiene las bibliotecas y sus versiones; Python se instala por separado.
 
+### Dependencias
+
+| Dependencia | Versión | Uso |
+| --- | --- | --- |
+| Peewee | 4.5.3 | Modelos ORM y persistencia. |
+| mysqlclient | 2.3.0 | Conexión de Python con MySQL. |
+| python-decouple | 3.8 | Lectura de la configuración desde `.env`. |
+| BCrypt | 5.0.0 | Hash y verificación de contraseñas. |
+| Maskpass | 0.3.7 | Ingreso de contraseñas enmascaradas en terminal. |
+| ttkbootstrap | 2.2.3 | Interfaz gráfica sobre Tkinter. |
+| Pillow | 12.3.0 | Tratamiento de imágenes. |
+| PrettyTable | 3.18.0 | Tablas en consola. |
+| wcwidth | 0.9.2 | Cálculo del ancho de caracteres en terminal. |
+
+Tkinter forma parte de la instalación de Python con soporte Tcl/Tk. MySQL se instala y se inicia por separado; WampServer es la opción utilizada en desarrollo. Los comandos de este manual están escritos para Windows PowerShell.
+
 ### Configurar la base de datos
 
-Crear la base en MySQL y configurar estas variables en `.env`:
+Con MySQL iniciado, abrir una consola SQL o la pestaña **SQL** de phpMyAdmin usando una cuenta con permisos para crear bases y usuarios. Para una instalación nueva, ejecutar:
+
+```sql
+CREATE DATABASE IF NOT EXISTS noticiero
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'noticiero_app'@'localhost'
+    IDENTIFIED BY 'REEMPLAZAR_POR_UNA_CLAVE_PROPIA';
+
+GRANT ALL PRIVILEGES ON noticiero.* TO 'noticiero_app'@'localhost';
+```
+
+Reemplazar la contraseña de ejemplo antes de ejecutar. Si se utilizará un usuario MySQL que ya existe, omitir `CREATE USER` y concederle los permisos sobre `noticiero` con su nombre y host correspondientes. Los permisos de creación y modificación de tablas permiten preparar el esquema y ejecutar las migraciones de este proyecto académico.
+
+Crear un archivo llamado `.env` en la raíz del proyecto, junto a `main.py`, con estos valores:
 
 ```dotenv
 DB_NAME=noticiero
-DB_USER=usuario
-DB_PASSWORD=ColoColo1312-
+DB_USER=noticiero_app
+DB_PASSWORD=REEMPLAZAR_POR_UNA_CLAVE_PROPIA
 DB_HOST=localhost
 DB_PORT=3306
 ```
 
 Los valores anteriores son ejemplos. El usuario de MySQL debe existir y tener los permisos necesarios sobre la base. Escribir sus datos en `.env` no lo crea.
 
+La contraseña de `.env` debe coincidir con la asignada en MySQL. `datos/conexion.py` lee estas cinco variables; `datos/model_base.py` comparte la conexión entre los modelos. Mantener `.env` fuera del repositorio.
+
 **El usuario de MySQL y las cuentas de Noticiero son diferentes:** el primero permite conectar el programa a la base; las segundas permiten iniciar sesión como lector, periodista o administrador.
 
 En una base nueva y vacía, la aplicación crea sus tablas y carga categorías y etiquetas iniciales. Si se utiliza una base de una versión anterior, consultar la sección de mantenimiento antes de iniciar.
+
+La aplicación **crea las tablas, pero no la base de datos ni el usuario MySQL**. Para una instalación nueva no es necesario importar `datos/sql/noticiero.sql`: el arranque prepara las tablas mediante Peewee.
 
 ### Abrir la aplicación
 
@@ -71,11 +107,26 @@ Si el entorno virtual ya está activo y aparece `(.venv)`, se puede usar `python
 2. Completar nombre, correo, contraseña y su confirmación.
 3. Elegir **Lector**, **Periodista** o **Ambos**.
 4. Completar los campos del perfil elegido: intereses para el lector; especialidad y, opcionalmente, seudónimo para el periodista.
-5. Crear la cuenta. En los siguientes accesos, utilizar el correo y la contraseña en **Iniciar sesión**.
+5. Crear la cuenta. La interfaz gráfica vuelve al formulario **Iniciar sesión** con el correo precargado y las contraseñas vacías.
+6. Ingresar el correo y la contraseña para acceder al menú del perfil. En consola, aceptar iniciar sesión después del registro también solicita las credenciales.
+
+```text
+Inicio → Pantalla o menú de acceso → Login → Validación → Menú del perfil
+```
+
+El registro no abre automáticamente el menú de trabajo. Antes de autenticarse solo están disponibles las opciones de acceso y registro.
 
 Las contraseñas nuevas deben tener entre **12 y 128 caracteres**, con mayúscula, minúscula, número y símbolo. Los espacios no cuentan como símbolo. Se rechazan caracteres de control y algunas claves comunes de una lista local básica. No se pide escribir una contraseña hexadecimal.
 
-Las cuentas suspendidas o dadas de baja no pueden iniciar sesión. En la interfaz gráfica, tres intentos de acceso fallidos activan una espera de 30 segundos. En consola, tres intentos fallidos devuelven al menú principal.
+Las cuentas suspendidas o dadas de baja no pueden iniciar sesión. En la interfaz gráfica, tres intentos de acceso fallidos activan una espera de 30 segundos. En consola, tres intentos fallidos devuelven al menú de acceso.
+
+### Protección de contraseñas
+
+Las cuentas nuevas y los cambios de contraseña se guardan con **BCrypt**, sal aleatoria y costo 12. Para admitir las claves largas y Unicode del proyecto sin truncarlas, `auxiliares/seguridad.py` prepara la entrada con SHA-256 y Base64 antes de aplicar BCrypt. El formato almacenado comienza con `bcrypt_sha256$`, seguido del hash BCrypt; no se guarda la contraseña en texto plano.
+
+Los hashes PBKDF2 de la versión anterior se verifican para conservar el acceso y se actualizan a BCrypt después de un login correcto. Al iniciar, la aplicación también protege contraseñas legadas en texto plano, si las encuentra; no vuelve a hashear los valores ya reconocidos como hashes.
+
+La terminal utiliza **Maskpass** y muestra asteriscos al escribir. La interfaz gráfica conserva sus campos de contraseña ocultos de Tkinter.
 
 ### Cambiar de perfil
 
@@ -139,12 +190,14 @@ En **Mis noticias**, seleccionar **Gestionar** sobre una publicación propia. La
 | Contenido | Editar el título y el cuerpo de la noticia. |
 | Estado | Elegir una transición válida, como publicar o archivar. |
 | Clasificación | Cambiar sus categorías y etiquetas. |
-| Recursos | Agregar o quitar imágenes y videos mediante enlaces y completar sus datos. |
+| Recursos | Agregar, consultar, editar y eliminar imágenes y videos mediante enlaces y sus datos asociados. |
 | Comentarios | Revisar y ocultar o volver a mostrar comentarios de esa noticia. |
 
 También hay una **Vista previa** y una opción para **Eliminar** la noticia. La eliminación es definitiva y borra sus comentarios, recursos, favoritos y asociaciones de clasificación.
 
 El periodista gestiona sus propias noticias; el administrador tiene acceso global. La vista previa permite revisar la presentación sin actuar como lector ni publicar comentarios.
+
+En **Recursos**, el botón **Editar** precarga la URL, el peso, los derechos y los datos específicos de la imagen o video. El tipo no cambia durante la edición. El botón **Eliminar** pide confirmación y borra el recurso junto con sus detalles. La consola ofrece operaciones equivalentes; al editar, los datos introducidos reemplazan a los anteriores y los opcionales vacíos se borran. La actualización del recurso y de sus detalles se guarda en una transacción.
 
 ### Estados de una noticia
 
@@ -167,13 +220,13 @@ El administrador supervisa cuentas y contenido. Cada operación administrativa c
 
 ### Crear el primer administrador
 
-Con las tablas creadas y el esquema actualizado, ejecutar:
+No hay una cuenta ni una contraseña de administrador predeterminadas. Para preparar una instalación nueva, ejecutar primero `main.py` y cerrar la aplicación desde la pantalla de acceso una vez creadas las tablas. Con el esquema preparado, ejecutar:
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.crear_admin
+.\.venv\Scripts\python.exe -m presentacion.crear_admin
 ```
 
-La herramienta solicita nombre, correo y contraseña dos veces. La contraseña no aparece mientras se escribe. Solo permite la creación inicial cuando no existe otro administrador activo y no sobrescribe una cuenta con el mismo correo.
+La herramienta solicita nombre, correo y contraseña dos veces. Maskpass oculta los caracteres de la contraseña con asteriscos. Solo permite la creación inicial cuando no existe otro administrador activo y no sobrescribe una cuenta con el mismo correo. Utiliza un bloqueo de MySQL para impedir dos provisiones iniciales simultáneas.
 
 Después, iniciar sesión normalmente. Si ya hay un administrador activo, este puede crear otro desde su panel.
 
@@ -226,7 +279,7 @@ Todos los perfiles permiten editar los datos de su propia cuenta desde **Mi perf
 
 Una categoría o etiqueta asociada a noticias no se puede eliminar desde el administrador. El indicador de derechos de un recurso es informativo: marcarlo pendiente no implica que automáticamente deje de mostrarse.
 
-La baja de la cuenta propia está preparada en el modelo, pero **todavía no tiene un botón de autoservicio en la interfaz**. Las contraseñas antiguas siguen funcionando al ingresar; la política más exigente se aplica al crear una cuenta o cambiar la contraseña.
+La baja de la cuenta propia está preparada en `negocio/usuario_servicio.py`, pero **todavía no tiene un botón de autoservicio en la interfaz**. La baja administrativa sí está disponible. Las contraseñas antiguas siguen funcionando al ingresar; la política más exigente se aplica al crear una cuenta o cambiar la contraseña.
 
 ## 8. Uso de la versión por consola
 
@@ -257,21 +310,78 @@ Los campos marcados como opcionales pueden dejarse vacíos. Las selecciones múl
 
 Este recorrido muestra cómo los roles trabajan sobre las mismas entidades, con herramientas y responsabilidades diferentes.
 
-## 10. Relación con Programación Orientada a Objetos
+## 10. Arquitectura por capas y Programación Orientada a Objetos
+
+### Estructura del proyecto
+
+```text
+proyecto/
+├── datos/
+│   ├── conexion.py
+│   ├── model_base.py
+│   ├── modelos/
+│   ├── repositorio/
+│   ├── sql/noticiero.sql
+│   ├── base_de_datos.py
+│   ├── datos_iniciales.py
+│   ├── migraciones.py
+│   ├── transacciones.py
+│   └── provision.py
+├── negocio/
+│   ├── usuario_servicio.py
+│   ├── noticia_servicio.py
+│   ├── lector_servicio.py
+│   ├── periodista_servicio.py
+│   ├── comentario_servicio.py
+│   ├── recurso_servicio.py
+│   ├── categoria_servicio.py
+│   ├── etiqueta_servicio.py
+│   ├── favorito_servicio.py
+│   ├── clasificacion_servicio.py
+│   ├── admin_servicio.py
+│   └── moderacion_servicio.py
+├── presentacion/
+│   ├── interfaz/
+│   ├── consola/
+│   ├── crear_admin.py
+│   └── multimedia.py
+├── auxiliares/
+│   ├── seguridad.py
+│   ├── validaciones.py
+│   ├── busqueda.py
+│   ├── constantes.py
+│   └── mensajes.py
+├── pruebas/
+├── requirements.txt
+├── README.md
+└── main.py
+```
+
+El recorrido de una operación es **Presentación → Negocio → Repositorio → Modelo ORM → MySQL**. `main.py` prepara el sistema y abre la interfaz seleccionada.
 
 ### Clases, atributos y métodos
 
-El sistema representa los elementos del noticiero mediante objetos. Cada clase reúne datos y operaciones relacionadas:
+El sistema representa sus entidades mediante modelos Peewee. Las reglas de negocio se implementan en servicios que reciben esos objetos; ya no son métodos de los modelos:
 
-| Clase | Ejemplos de atributos | Ejemplos de métodos |
+| Modelo | Ejemplos de atributos | Servicio y operaciones |
 | --- | --- | --- |
-| Usuario | nombre, correo, estado_cuenta, es_admin | iniciar_sesion, actualizar_perfil, cambiar_contrasena |
-| Lector | intereses, limite_comentarios_diarios | registrar_comentario, marcar_interes |
-| Periodista | especialidad, alias_seudonimo | crear_noticia, editar_noticia |
-| Noticia | titulo, contenido, estado | publicar, cambiar_estado |
-| Comentario | contenido, reportes_conteo | reportar, moderar |
+| Usuario | nombre, correo, estado_cuenta, es_admin | `usuario_servicio`: iniciar_sesion, actualizar_perfil, cambiar_contrasena. |
+| Lector | intereses, limite_comentarios_diarios | `lector_servicio`: registrar_comentario, marcar_interes. |
+| Periodista | especialidad, alias_seudonimo | `periodista_servicio`: crear_noticia, editar_noticia. |
+| Noticia | titulo, contenido, estado | `noticia_servicio`: publicar, cambiar_estado. |
+| Comentario | contenido, reportes_conteo | `comentario_servicio`: reportar, moderar. |
 
-Por ejemplo, la interfaz llama a `Noticia.publicar()` y el método comprueba el estado y la existencia de una categoría. Así, la regla de publicación queda en un lugar reutilizable.
+Por ejemplo, la interfaz llama a `noticia_servicio.publicar(noticia)`. El servicio comprueba el estado y consulta al repositorio si existe una categoría antes de guardar la publicación. La misma regla sirve para la interfaz gráfica y la consola.
+
+Los repositorios se implementan con **funciones de módulo, sin clases contenedoras**. Cada entidad principal tiene su repositorio, con funciones de guardado, listado y búsqueda. Este patrón utiliza `save()` de Peewee:
+
+```python
+def guardar(objeto, **opciones):
+    objeto.save(**opciones)
+    return objeto
+```
+
+Las creaciones utilizan `insertar(**datos)`, que construye el modelo y llama a `guardar(..., force_insert=True)`. Las operaciones que afectan varios registros usan el contexto `atomica()` de `datos/transacciones.py`.
 
 ### Herencia y polimorfismo
 
@@ -287,37 +397,51 @@ La herencia se utiliza en la estructura técnica y en las pantallas:
 
 ### Encapsulación de reglas y separación de responsabilidades
 
-Los métodos agrupan reglas como validar una contraseña, comprobar la autoría de una noticia o limitar los comentarios diarios. Esta organización no significa que todos los atributos sean privados; el objetivo es concentrar las operaciones relacionadas y reutilizarlas.
+Los servicios agrupan reglas como comprobar la autoría de una noticia, controlar permisos o limitar los comentarios diarios. Los modelos describen campos, relaciones y configuración ORM. Las pantallas y menús capturan datos y muestran resultados.
 
 El proyecto separa estas responsabilidades:
 
 | Carpeta o archivo | Responsabilidad |
 | --- | --- |
-| `src/modelos/` | Entidades, relaciones y parte de las reglas del negocio. |
-| `src/repositorios/` | Consultas y operaciones de datos; autorización en los repositorios administrativos. |
-| `src/interfaz/` | Ventanas, formularios y acciones de la interfaz gráfica. |
-| `src/presentacion/` | Menús y entrada/salida por consola. |
-| `src/validaciones.py` | Validaciones compartidas de texto, correo, contraseña y enlaces. |
-| `src/seguridad.py` | Cálculo y verificación de contraseñas protegidas. |
-| `src/conexion.py` | Configuración de la conexión MySQL. |
+| `datos/modelos/` | Entidades y relaciones ORM; todos los modelos heredan de `ModelBase`. |
+| `datos/repositorio/` | Funciones de consulta y persistencia por entidad. |
+| `datos/conexion.py` y `datos/model_base.py` | Configuración de conexión y base compartida por los modelos. |
+| `datos/sql/` | Volcado SQL conservado del proyecto. |
+| `negocio/` | Reglas de negocio, permisos, validaciones de procesos y coordinación de repositorios. |
+| `presentacion/interfaz/` | Ventanas y formularios de la interfaz gráfica. |
+| `presentacion/consola/` | Menús y entrada/salida por terminal. |
+| `auxiliares/` | Validaciones compartidas, seguridad, búsqueda, constantes y mensajes reutilizables. |
 | `main.py` | Preparación del sistema y elección de interfaz. |
 
 Los objetos se relacionan entre sí: un periodista escribe varias noticias, una noticia tiene comentarios y recursos, y un lector puede marcar varias noticias como favoritas. Las tablas intermedias resuelven relaciones de muchos a muchos, como noticias con categorías o etiquetas.
 
+### Operaciones CRUD disponibles
+
+| Entidad | Crear | Consultar | Modificar | Eliminar o deshabilitar |
+| --- | --- | --- | --- | --- |
+| Usuario y perfiles | Registro o panel administrativo. | Mi perfil y gestión de usuarios. | Datos propios; estado y permiso desde administración. | Suspensión o baja administrativa. |
+| Noticia | Redactar noticia. | Mis noticias, portada o administración. | Contenido, estado y clasificación. | Eliminación o archivo. |
+| Comentario | Dentro de una noticia publicada. | Noticia, Mis comentarios o administración. | Edición propia y moderación. | Eliminación propia o administrativa. |
+| Categoría | Panel administrativo. | Catálogo y selectores. | Nombre, descripción y estado. | Desactivación o eliminación si no está en uso. |
+| Etiqueta | Panel administrativo. | Catálogo y selectores. | Nombre y aprobación. | Cambio de aprobación o eliminación si no está en uso. |
+| Recurso, imagen y video | Recursos de una noticia propia. | Noticia y paneles de gestión. | Edición por el periodista; derechos desde administración. | Eliminación por el autor o administrador. |
+
+Las asociaciones de categorías y etiquetas se gestionan desde la clasificación de noticias. Los favoritos se agregan, consultan y quitan desde el perfil lector.
+
 ## 11. Mantenimiento de una base existente
 
-`sql/noticiero.sql` es un archivo de restauración con `DROP TABLE`, destinado a una base vacía. **No debe importarse sobre datos que se quieran conservar.** La creación automática de tablas no actualiza la estructura de las que ya existen.
+`datos/sql/noticiero.sql` es un archivo de restauración con `DROP TABLE`, destinado a una base vacía. **No debe importarse sobre datos que se quieran conservar.** La creación automática de tablas no actualiza la estructura de las que ya existen.
 
 Con la aplicación cerrada, revisar el esquema sin modificarlo:
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.migraciones
+.\.venv\Scripts\python.exe -m datos.migraciones
 ```
 
 Después de respaldar la base y revisar el plan, aplicar los cambios pendientes:
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.migraciones --aplicar
+.\.venv\Scripts\python.exe -m datos.migraciones --aplicar
 ```
 
 La herramienta revisa tablas, tipos, motores y referencias huérfanas. Puede convertir MyISAM a InnoDB, añadir relaciones faltantes y agregar el permiso administrativo. No borra registros ni corrige datos huérfanos automáticamente.
@@ -336,7 +460,10 @@ Utilizan SQLite en memoria y dobles de prueba, sin acceder a MySQL. La comprobac
 
 ```powershell
 .\.venv\Scripts\python.exe -m pruebas.comprobar_interfaz_admin
+.\.venv\Scripts\python.exe -m pruebas.comprobar_interfaz_roles
 ```
+
+La suite incluye pruebas de integridad, permisos, reglas de contraseña, BCrypt, migración de hashes anteriores, CRUD, transacciones y dependencias entre capas. Las comprobaciones de interfaz construyen widgets reales con datos ficticios; la segunda recorre login, lector, periodista, edición de recursos y cierre de sesión.
 
 | Situación | Qué revisar |
 | --- | --- |
@@ -346,4 +473,12 @@ Utilizan SQLite en memoria y dobles de prueba, sin acceder a MySQL. La comprobac
 | La consola parece esperar al redactar | Terminar el contenido con `FIN` en una línea aparte. |
 | La noticia no aparece en Portada | Revisar que su estado sea publicada. |
 | No se puede publicar | Revisar el estado actual y que la noticia tenga al menos una categoría. |
-| El programa pide actualizar el esquema | Revisar el plan de `src.migraciones` antes de aplicar cambios. |
+| El programa pide actualizar el esquema | Revisar el plan de `datos.migraciones` antes de aplicar cambios. |
+| Falta una variable de configuración | Crear `.env` junto a `main.py` con las cinco variables indicadas. |
+| La base no existe | Ejecutar primero el SQL de creación de la base; el arranque solo crea tablas. |
+| Faltan BCrypt, Maskpass u otras bibliotecas | Instalar `requirements.txt` con el mismo Python utilizado para ejecutar el programa. |
+| No se puede crear el primer administrador | Preparar primero las tablas; si ya existe un administrador activo, crear las cuentas desde su panel. |
+
+Integrantes de el grupo: Simón Macías, Natalia Sandoval.
+Seccion: IEI-N2-C2
+Profesor: Erick Bailey Rebolledo

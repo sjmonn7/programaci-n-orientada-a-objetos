@@ -2,21 +2,21 @@ import sys
 
 from peewee import OperationalError
 
-from src.base_de_datos import crear_tablas
-from src.conexion import db
-from src.datos_iniciales import cargar_datos_iniciales
-from src.migraciones import planificar
-from src.presentacion.menu_principal import MenuPrincipal
-from src.presentacion.utilidades import mostrar_error, mostrar_info
-from src.repositorios.usuario_repositorio import UsuarioRepositorio
+from datos.base_de_datos import crear_tablas
+from datos.conexion import db
+from datos.datos_iniciales import cargar_datos_iniciales
+from datos.migraciones import planificar
+from presentacion.consola.menu_acceso import MenuAcceso
+from presentacion.consola.utilidades import mostrar_error, mostrar_info
+from negocio import usuario_servicio
 
 
 def preparar_base_de_datos():
     crear_tablas()
     if planificar(db):
         raise ValueError("El esquema necesita actualizarse. Revisa primero con "
-                         "python -m src.migraciones; consulta las instrucciones del README.")
-    protegidas = UsuarioRepositorio.proteger_contrasenas_antiguas()
+                         "python -m datos.migraciones; consulta las instrucciones del README.")
+    protegidas = usuario_servicio.proteger_contrasenas_antiguas()
     if protegidas:
         mostrar_info(f"Se protegieron {protegidas} contraseña(s) que estaban en texto plano "
                      "(ahora se guardan con hash y sal).")
@@ -30,16 +30,16 @@ def main():
     except OperationalError as error:
         mostrar_error(f"No se pudo conectar a MySQL: {error}")
         print("Revisa que WampServer esté encendido (ícono verde) y que los datos de "
-              "src/conexion.py sean correctos.")
+              "datos/conexion.py y .env sean correctos.")
         return
 
     try:
         preparar_base_de_datos()
         if "--consola" in sys.argv:
-            MenuPrincipal().ejecutar()
+            MenuAcceso().ejecutar()
         else:
             # import local: el modo consola funciona aunque no esté instalado ttkbootstrap
-            from src.interfaz.app import AplicacionNoticias
+            from presentacion.interfaz.app import AplicacionNoticias
             AplicacionNoticias().mainloop()
         print("\n¡Hasta luego!")
     except (KeyboardInterrupt, EOFError):
